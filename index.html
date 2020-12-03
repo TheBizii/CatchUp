@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="sl" xml:lang="sl">
+  <head>
+    <title>CatchUp | real-time chat app</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Lato&display=swap" rel="stylesheet">
+    <style>
+      * { font-size: 15px; margin: 0; padding: 0; box-sizing: border-box; }
+      body { background-color: lightgray; font-family: 'Lato', sans-serif; }
+      #login_form {
+        width: 30vw;
+        height: 50vh;
+        margin-top: 25vh;
+        margin-left: 35vw;
+        border: solid 1px lightgray;
+        padding: 10px 10px;
+        display: flex;
+        align-items: center;
+        box-shadow: 0px 0px 6px 6px rgba(0,0,0,0.1);
+        text-align: center;
+        background-color: white;
+      }
+      #login_form input {
+        width: 80%;
+        height: 30px;
+        margin-bottom: 5px;
+        padding-left: 30px;
+        border-radius: 15px;
+        border: solid 1px gray;
+      }
+      #login_form h1, #login_form p {
+        margin-bottom: 10px;
+      }
+      #login_form h1 {
+        font-size: 34px;
+      }
+      #login_form button {
+        border-color: #343a40;
+        background-color: #343a40;
+        color: #fff;
+        padding: 10px;
+        border-radius: 5px;
+        display: block;
+        margin: 0 auto;
+        cursor: pointer;
+      }
+      #login_form button:focus, #login_form button:hover {
+        background-color: white;
+        color: #343a40;
+      }
+      #napaka_koda, #napaka_uporabnisko_ime {
+        color: black;
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      .error {
+        color: #AD6000 !important;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="login_form">
+      <form action="">
+        <h1>Prijava</h1>
+        <p>Če ste bili v klepet povabljeni, prosite člane za kodo klepetalnice. Če pustite prazno, se bo ustvarila nova soba.</p>
+        <p><label class="error">*</label> - vnosno polje je obvezno.</p>
+        <label id="napaka_koda" for="code">Vnesite kodo klepetalnice.</label>
+        <input type="text" name="code" id="code" placeholder="Vnesite kodo klepetalnice">
+        <label id="napaka_uporabnisko_ime" for="username"><label class="error">*</label> Vnesite uporabniško ime.</label>
+        <input type="text" name="username" id="username" placeholder="Vnesite uporabniško ime">
+        <button>Prijava</button>
+      </form>
+    </div>
+  	<!-- Skripte -->
+  	<script src="/socket.io/socket.io.js"></script>
+  	<script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+  	<script>
+  	  $(function () {
+    		var socket = io();
+    		$('form').submit(function(e) {
+    		  e.preventDefault(); // prevents page reloading
+          
+          if(!$("#username").val()) {
+            $("#napaka_uporabnisko_ime").text("Vnesite uporabniško ime.");
+            $("#napaka_uporabnisko_ime").addClass("error");
+          } else {
+            socket.emit('login', $('#code').val(), $('#username').val());
+          }
+
+    		});
+        socket.on('logged in', function(code, user, codeError) {
+          if(codeError.trim() === "") {
+            let sess = {
+              koda: code,
+              uporabniskoIme: user
+            };
+            localStorage.setItem("session", JSON.stringify(sess));
+            window.location.href = "./chat?koda=" + code;
+          } else {
+            $("#napaka_koda").text(codeError);
+            $("#napaka_koda").addClass("error");
+          }
+        });
+  	  });
+  	</script>
+  </body>
+</html>

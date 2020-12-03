@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="sl" xml:lang="sl">
+  <head>
+    <script>
+      var getUrlParameter = function getUrlParameter(sParam) {
+        var sPageURL = window.location.search.substring(1),
+          sURLVariables = sPageURL.split('&'),
+          sParameterName,
+          i;
+
+        for (i = 0; i < sURLVariables.length; i++) {
+          sParameterName = sURLVariables[i].split('=');
+
+          if (sParameterName[0] === sParam) {
+            return sParameterName[1] === undefined ? true : decodeURIComponent(sParameterName[1]);
+          }
+        }
+      };
+
+      let json = JSON.parse(localStorage.getItem("session"));
+      
+      if(getUrlParameter("koda") === undefined) {
+        window.location.href = "./";
+      } else {
+        if(getUrlParameter("koda") !== json.koda) window.location.href = "./";
+      }
+
+      if(!json.uporabniskoIme || json.uporabniskoIme.trim() === "") window.location.href = "./";
+
+    </script>
+    <title>CatchUp | real-time chat app</title>
+    <meta http-equiv="Content-Type" content="text/xhtml; charset=UTF-8" />
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Lato&display=swap" rel="stylesheet">
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { background-color: lightgray; font-family: 'Lato', sans-serif; font-size: 14px; }
+      #chatbox { width: 70vw; height: 85vh; margin-left: 15vw; margin-top: 5vh; padding-bottom: 50px; }
+      #tools { height: 2em; text-align: right; }
+      #tools a { padding: 5px 5px; text-decoration: none; color: black; cursor: pointer; user-select: none; }
+      #tools a:hover { background-color: darkgray; color: black; }
+      form { width: 70vw; position: absolute; bottom: 7vh; left: 15vw; }
+      form input { border: 0; padding: 10px; width: 90%; }
+      form button { width: 10%; background-color: #FFC107; border: none; padding: 10px; color: black; font-weight: bold}
+      form label { display: block; margin-bottom: 5px; font-weight: bold}
+      #messages { list-style-type: none; margin: 0; padding: 0; background-color: white; height: calc(100% - 2em); width: 100%; overflow-y: auto; word-break: break-word; border: solid 1px black;}
+      #messages li { padding: 5px 10px; border-bottom: solid 1px gray; }
+      #messages li:hover { background-color: lightgray; }
+      #messages li div { margin-bottom: 5px; }
+      #messages li p { line-height: 1.8em; }
+      .datum { float: right; font-weight: bold; }
+      .uporabnik { font-weight: bold; }
+      #koda { text-align: left !important; display: inline; }
+    </style>
+  </head>
+  <body>
+    <div id="chatbox">
+      <div title="Pripomočki" id="tools">
+        <a tabindex="0" id="povecaj">Povečaj pisavo</a>
+        <a tabindex="0" id="pomanjsaj">Pomanjšaj pisavo</a>
+        <h2 id="koda"></h2>
+      </div>
+      <ul id="messages"></ul>
+      <form action="">
+        <label for="m">Vaše sporočilo:</label>
+        <input id="m" name="m" autocomplete="off" placeholder="Vnesi sporočilo" /><button>Pošlji</button>
+      </form>
+    </div>
+
+  	<!-- Skripte -->
+  	<script src="/socket.io/socket.io.js"></script>
+  	<script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+  	<script>
+      $(document).ready(function() {
+        $("#koda").text("Koda: " + getUrlParameter("koda"));
+      });
+  	  $(function () {
+  		  var socket = io();
+
+    		$('form').submit(function(e) {
+    		  e.preventDefault(); // prevents page reloading
+          if($("#m").val().trim() !== "") {
+            let json = {};
+            json = JSON.parse(localStorage.getItem("session"));
+      		  socket.emit('chat message', json.koda, $('#m').val(), json.uporabniskoIme);
+      		  $('#m').val('');
+      		  return false;
+          }
+    		});
+
+    		socket.on('chat message', function(code, user, msg, date){
+          if(code === getUrlParameter("koda")) {
+            let elem = document.createElement("li");
+
+            let podatki = document.createElement("div");
+            let uporabnik = document.createElement("span");
+            $(uporabnik).addClass("uporabnik");
+            uporabnik.appendChild(document.createTextNode(user));
+            let datum = document.createElement("span");
+            $(datum).addClass("datum");
+            datum.appendChild(document.createTextNode(date));
+            podatki.appendChild(uporabnik);
+            podatki.appendChild(datum);
+            elem.append(podatki);
+
+            let sporocilo = document.createElement("p");
+            sporocilo.appendChild(document.createTextNode(msg));
+            elem.appendChild(sporocilo);
+
+      		  $('#messages').append(elem);
+
+            var objDiv = document.getElementById("messages");
+            objDiv.scrollTop = objDiv.scrollHeight;
+          }
+    		});
+  	  });
+
+      $('#povecaj').click(function(e) {
+        spremeniVelikost('+');
+      });
+
+      $('#povecaj').keyup(function(e) {
+        if(e.keyCode === 13) spremeniVelikost('+');
+      });
+
+      $('#pomanjsaj').click(function(e) {
+        spremeniVelikost('-');
+      });
+
+      $('#pomanjsaj').keyup(function(e) {
+        if(e.keyCode === 13) spremeniVelikost('-');
+      });
+
+      function spremeniVelikost(smer) {
+        switch(smer) {
+          case '-':
+            var fontSize = parseInt($("body").css("font-size").replace("px", ""));
+            $("body").css("font-size", fontSize - 1);
+            $("form input").css("font-size", fontSize - 1);
+            $("form button").css("font-size", fontSize - 1);
+            break;
+          case '+':
+            var fontSize = parseInt($("body").css("font-size").replace("px", ""));
+            $("body").css("font-size", fontSize + 1);
+            $("form input").css("font-size", fontSize + 1);
+            $("form button").css("font-size", fontSize + 1);
+            break;
+          default:
+            break;
+        }
+      }
+  	</script>
+  </body>
+</html>
